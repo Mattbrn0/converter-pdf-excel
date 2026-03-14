@@ -55,17 +55,27 @@ router.post('/convert', upload.array('files', 20), async (req, res) => {
   try {
     send(0);
     const toutesFactures = [];
-    let done = 0;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const { text } = await extraireTextePdf(file.buffer);
-      done += 1;
-      send(5 + (done / N) * 20);
-      if (!text?.trim()) continue;
-      const factures = await extraireFacturesAvecLLM(text);
-      if (factures.length > 0) toutesFactures.push(factures[0]);
-      send(25 + (done / N) * 50);
+    const CONCURRENCY = 2;
+    const extracted = await Promise.all(
+      files.map(async (file) => {
+        const { text } = await extraireTextePdf(file.buffer);
+        return { text: text?.trim() || '', file };
+      })
+    );
+    send(20);
+
+    const withText = extracted.filter((e) => e.text.length > 0);
+    for (let i = 0; i < withText.length; i += CONCURRENCY) {
+      const chunk = withText.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        chunk.map(({ text }) => extraireFacturesAvecLLM(text))
+      );
+      results.forEach((factures) => {
+        if (factures.length > 0) toutesFactures.push(factures[0]);
+      });
+      const done = Math.min(i + chunk.length, withText.length);
+      send(20 + (done / Math.max(withText.length, 1)) * 55);
     }
 
     if (!toutesFactures.length) {

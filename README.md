@@ -142,14 +142,7 @@ En production, définir `VITE_API_URL` vers l’URL de votre backend si différe
 
 ## Déploiement (VPS)
 
-Après avoir cloné le dépôt sur ton serveur :
-
-```bash
-git clone https://github.com/TON_USER/converter-pdf-excel.git
-cd converter-pdf-excel
-```
-
-Puis configurer `server/.env` et `client/.env` (voir variables ci-dessus), lancer le backend et builder/servir le frontend (voir ton guide de déploiement).
+Voir **[DEPLOY_VPS.md](DEPLOY_VPS.md)** pour le guide pas à pas (lien avec Mistral/Ollama, mise en ligne, ports, option Nginx).
 
 ## Licence
 
