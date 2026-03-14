@@ -1,0 +1,15 @@
+# Env et secrets
+.env
+.env.local
+.env.*.local
+
+# Dépendances et build
+node_modules
+client/dist
+server/node_modules
+client/node_modules
+
+# OS / éditeur
+.DS_Store
+Thumbs.db
+*.log
