@@ -34,6 +34,49 @@ Règles importantes :
 - Un document = une facture : utilise le TOTAL TTC du document (Net à payer), pas les sous-totaux partiels (ex. d'un BL). Retourne un seul élément dans "factures" par document.`;
 
 /**
+ * Compacte le texte d'une facture pour ne garder que les parties utiles :
+ * - premières lignes (entête, références)
+ * - lignes contenant des mots-clés comptables (TTC, Net à payer, acompte, RIB, virement, facture, total, échéance, règlement, payé)
+ * afin de réduire le temps de traitement LLM sur un petit VPS.
+ */
+function compacterTexteFacture(texte, maxChars = 8000) {
+  if (!texte || typeof texte !== 'string') return '';
+  const lignes = texte.split(/\r?\n/);
+  const maxPremieresLignes = 120;
+  const premiers = lignes.slice(0, maxPremieresLignes);
+  const keywords = [
+    'ttc',
+    'net a payer',
+    'net à payer',
+    'montant ttc',
+    'total ttc',
+    'total ht',
+    'acompte',
+    'situation',
+    'regle',
+    'réglé',
+    'percu',
+    'perçu',
+    'facture',
+    'echeance',
+    'échéance',
+    'rib',
+    'iban',
+    'virement',
+    'reglement',
+    'règlement',
+    'paiement',
+  ];
+  const lowerIncludesKeyword = (line) => {
+    const l = line.toLowerCase();
+    return keywords.some((k) => l.includes(k));
+  };
+  const lignesPertinentes = lignes.filter((line, idx) => idx >= maxPremieresLignes && lowerIncludesKeyword(line));
+  const fusion = [...premiers, ...lignesPertinentes].join('\n');
+  return fusion.slice(0, maxChars);
+}
+
+/**
  * Tente de corriger les erreurs de syntaxe JSON fréquentes (virgules manquantes ou en trop).
  */
 function tryRepairJson(str) {
@@ -188,6 +231,11 @@ async function callOllama(baseUrl, model, messages) {
     body: JSON.stringify({
       model,
       messages,
+      // Limiter la génération pour accélérer la réponse sur un petit VPS CPU
+      options: {
+        num_predict: 384,
+        temperature: 0.1,
+      },
       stream: false,
     }),
   });
@@ -208,7 +256,8 @@ export async function extraireFacturesAvecLLM(textePdf) {
   }
 
   const config = getProviderConfig();
-  const texte = textePdf.slice(0, 16000);
+  // Limiter fortement la taille du texte envoyé au LLM pour réduire le temps de traitement
+  const texte = compacterTexteFacture(textePdf, 8000);
   const multiDoc = (texte.match(/--- Document:/g) || []).length > 1;
   const userContent = multiDoc
     ? `Le texte ci-dessous contient PLUSIEURS documents (séparés par "--- Document: ..."). Extrais les données de CHAQUE facture et retourne-les TOUTES dans le tableau "factures" (un élément par facture).\n\n${texte}`
@@ -237,7 +286,7 @@ export async function extraireFacturesAvecLLM(textePdf) {
     if (!raw || !raw.trimStart().startsWith('{')) raw = extractJsonLastResort(rawResponse);
     // Second essai avec prompt minimal si toujours pas de JSON (factures complexes)
     if (!raw || !raw.trimStart().startsWith('{')) {
-      const shortText = textePdf.slice(0, 6000);
+      const shortText = compacterTexteFacture(textePdf, 4000);
       rawResponse = await callOllama(config.baseUrl, config.model, [
         { role: 'user', content: `${FALLBACK_PROMPT}\n\n${shortText}` },
       ]);
