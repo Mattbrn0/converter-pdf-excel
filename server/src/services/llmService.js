@@ -77,6 +77,36 @@ function compacterTexteFacture(texte, maxChars = 8000) {
 }
 
 /**
+ * Essaie d'identifier et de sommer tous les montants d'acomptes dans le texte brut
+ * en se basant sur des mots-clés (acompte, situation, perçu, déjà réglé, etc.).
+ * Utilisé comme filet de sécurité si le LLM ne fait pas bien la somme.
+ */
+function extraireSommeAcomptesDepuisTexte(texte) {
+  if (!texte || typeof texte !== 'string') return 0;
+  const lignes = texte.split(/\r?\n/);
+  const reLigneAcompte =
+    /(acompte|situation|déjà réglé|deja regle|déjà perçu|deja percu|perçu le|percu le|situation\s+\d+)/i;
+  const reMontant = /(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
+  let total = 0;
+
+  for (const line of lignes) {
+    if (!reLigneAcompte.test(line)) continue;
+    const matches = line.match(reMontant);
+    if (!matches) continue;
+    for (const raw of matches) {
+      let s = raw.replace(/\s/g, '');
+      // Normaliser format français "663,90" -> "663.90"
+      s = s.replace(',', '.');
+      const n = Number(s);
+      if (!Number.isNaN(n) && n > 0) {
+        total += n;
+      }
+    }
+  }
+  return total;
+}
+
+/**
  * Tente de corriger les erreurs de syntaxe JSON fréquentes (virgules manquantes ou en trop).
  */
 function tryRepairJson(str) {
@@ -361,10 +391,19 @@ export async function extraireFacturesAvecLLM(textePdf) {
 
   // Normaliser totalTTC (accepter totalHT si le LLM l'envoie encore) et corriger confusions
   if (Array.isArray(parsed.factures)) {
+    const sommeAcomptesTexte = extraireSommeAcomptesDepuisTexte(textePdf);
+
     parsed.factures = parsed.factures.map((f) => {
       const totalTTC = Number(f.totalTTC ?? f.totalHT) || 0;
-      const acompte = Number(f.montantPayeAcomptes) || 0;
+      let acompte = Number(f.montantPayeAcomptes) || 0;
       let out = { ...f, totalTTC };
+
+      // Si le texte contient plusieurs acomptes et une somme claire, privilégier cette somme
+      if (sommeAcomptesTexte > 0 && Math.abs(sommeAcomptesTexte - acompte) > 0.5) {
+        acompte = sommeAcomptesTexte;
+        out = { ...out, montantPayeAcomptes: acompte };
+      }
+
       if (acompte >= totalTTC && totalTTC > 0) {
         out = { ...out, montantPayeAcomptes: 0, datesPaiementAcomptes: [] };
       } else if (totalTTC > 0 && acompte > 0 && acompte / totalTTC >= 1.18 && acompte / totalTTC <= 1.22) {
