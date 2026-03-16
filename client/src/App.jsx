@@ -8,6 +8,7 @@ function App() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   const onDrop = useCallback((e) => {
     e.preventDefault()
@@ -70,10 +71,19 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>Factures PDF → Excel</h1>
-        <p className="tagline">
-          Importez une ou plusieurs factures PDF et téléchargez un tableau Excel structuré.
-        </p>
+        <div className="header__main">
+          <h1>Factures PDF → Excel</h1>
+          <p className="tagline">
+            Importez une ou plusieurs factures PDF et téléchargez un tableau Excel structuré.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn--ghost header__help"
+          onClick={() => setShowHelp(true)}
+        >
+          Aide
+        </button>
       </header>
 
       <section
@@ -137,6 +147,45 @@ function App() {
       {error && (
         <div className="message message--error" role="alert">
           {error}
+        </div>
+      )}
+
+      {showHelp && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Aide">
+          <div className="overlay__content">
+            <div className="overlay__header">
+              <h2>Aide</h2>
+              <button
+                type="button"
+                className="overlay__close"
+                onClick={() => setShowHelp(false)}
+                aria-label="Fermer l’aide"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overlay__body">
+              <h3>Comment utiliser l’outil&nbsp;?</h3>
+              <ul>
+                <li>Glissez vos factures PDF dans la zone ou cliquez pour les sélectionner.</li>
+                <li>Vous pouvez ajouter plusieurs factures&nbsp;: une ligne par facture dans l’Excel.</li>
+                <li>Cliquez sur <strong>Convertir en Excel</strong> et attendez la fin de la barre de progression.</li>
+              </ul>
+
+              <h3>Ce qui est extrait</h3>
+              <p>
+                Date facture, fournisseur, total TTC (net à payer), date d’échéance, mode de paiement, état
+                (payée / à payer), montant payé (acomptes) et dates de paiement.
+              </p>
+
+              <h3>En cas de problème</h3>
+              <ul>
+                <li>Si la conversion échoue, réessayez avec une seule facture pour identifier laquelle pose problème.</li>
+                <li>Vérifiez que les montants TTC et les acomptes sont bien lisibles sur la facture.</li>
+                <li>Contactez le support avec la facture concernée pour améliorer l’outil.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
