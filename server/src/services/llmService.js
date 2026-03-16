@@ -77,20 +77,26 @@ function compacterTexteFacture(texte, maxChars = 8000) {
 }
 
 /**
- * Essaie d'identifier et de sommer tous les montants d'acomptes dans le texte brut
- * en se basant sur des mots-clés (acompte, situation, perçu, déjà réglé, etc.).
- * Utilisé comme filet de sécurité si le LLM ne fait pas bien la somme.
+ * Essaie d'identifier tous les acomptes dans le texte brut :
+ * - somme des montants
+ * - liste des dates associées
+ * basé sur des mots-clés (acompte, situation, perçu, déjà réglé, etc.).
  */
-function extraireSommeAcomptesDepuisTexte(texte) {
-  if (!texte || typeof texte !== 'string') return 0;
+function extraireAcomptesEtDatesDepuisTexte(texte) {
+  if (!texte || typeof texte !== 'string') return { total: 0, dates: [] };
   const lignes = texte.split(/\r?\n/);
   const reLigneAcompte =
     /(acompte|situation|déjà réglé|deja regle|déjà perçu|deja percu|perçu le|percu le|situation\s+\d+)/i;
   const reMontant = /(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
+  const reDate =
+    /(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+\d{2,4})/i;
   let total = 0;
+  const dates = [];
 
   for (const line of lignes) {
     if (!reLigneAcompte.test(line)) continue;
+
+    // Extraire les montants
     const matches = line.match(reMontant);
     if (!matches) continue;
     for (const raw of matches) {
@@ -102,8 +108,15 @@ function extraireSommeAcomptesDepuisTexte(texte) {
         total += n;
       }
     }
+
+    // Extraire la première date trouvée sur la ligne (s'il y en a)
+    const dateMatch = line.match(reDate);
+    if (dateMatch && dateMatch[1]) {
+      dates.push(dateMatch[1].trim());
+    }
   }
-  return total;
+
+  return { total, dates };
 }
 
 /**
@@ -391,18 +404,20 @@ export async function extraireFacturesAvecLLM(textePdf) {
 
   // Normaliser totalTTC (accepter totalHT si le LLM l'envoie encore) et corriger confusions
   if (Array.isArray(parsed.factures)) {
-    const sommeAcomptesTexte = extraireSommeAcomptesDepuisTexte(textePdf);
+    const acomptesTexte = extraireAcomptesEtDatesDepuisTexte(textePdf);
 
     parsed.factures = parsed.factures.map((f) => {
       const totalTTC = Number(f.totalTTC ?? f.totalHT) || 0;
-      let acompte = Number(f.montantPayeAcomptes) || 0;
-      let out = { ...f, totalTTC };
 
-      // Si le texte contient plusieurs acomptes et une somme claire, privilégier cette somme
-      if (sommeAcomptesTexte > 0 && Math.abs(sommeAcomptesTexte - acompte) > 0.5) {
-        acompte = sommeAcomptesTexte;
-        out = { ...out, montantPayeAcomptes: acompte };
-      }
+      // On ne fait plus confiance au LLM pour les acomptes : on écrase avec ce qu'on trouve dans le texte
+      let acompte = acomptesTexte.total > 0 ? acomptesTexte.total : Number(f.montantPayeAcomptes) || 0;
+      let out = {
+        ...f,
+        totalTTC,
+        montantPayeAcomptes: acompte,
+        datesPaiementAcomptes:
+          acomptesTexte.total > 0 && acomptesTexte.dates.length > 0 ? acomptesTexte.dates : f.datesPaiementAcomptes ?? [],
+      };
 
       if (acompte >= totalTTC && totalTTC > 0) {
         out = { ...out, montantPayeAcomptes: 0, datesPaiementAcomptes: [] };
