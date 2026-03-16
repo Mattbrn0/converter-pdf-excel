@@ -116,7 +116,7 @@ function extraireAcomptesEtDatesDepuisTexte(texte) {
       dates.push(dateMatch[1].trim());
     }
   }
-
+  console.log('=== DEBUG_ACOMPTES ===', { total, dates });
   return { total, dates };
 }
 
@@ -422,6 +422,14 @@ console.log('=== TEXTE_FACTURE_DEBUG_FIN ===');
         datesPaiementAcomptes:
           acomptesTexte.total > 0 && acomptesTexte.dates.length > 0 ? acomptesTexte.dates : f.datesPaiementAcomptes ?? [],
       };
+
+      console.log('=== DEBUG_FACTURE_ACOMPTES ===', {
+        fournisseur: out.fournisseur,
+        totalTTC,
+        acomptesTexte,
+        montantFinal: out.montantPayeAcomptes,
+        datesFinales: out.datesPaiementAcomptes,
+      });
 
       if (acompte >= totalTTC && totalTTC > 0) {
         out = { ...out, montantPayeAcomptes: 0, datesPaiementAcomptes: [] };
