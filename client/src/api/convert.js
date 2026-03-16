@@ -1,4 +1,13 @@
-const API_BASE = import.meta.env.VITE_API_URL || '';
+function getApiBase() {
+  const env = import.meta.env.VITE_API_URL || '';
+  if (env) return env.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  }
+  return '';
+}
+
+const API_BASE = getApiBase();
 
 /**
  * Envoie les fichiers PDF au backend, suit la progression via SSE et retourne le blob Excel.
@@ -10,10 +19,20 @@ export async function convertPdfToExcel(files, onProgress) {
   const formData = new FormData();
   files.forEach((file) => formData.append('files', file));
 
-  const res = await fetch(`${API_BASE}/api/convert`, {
-    method: 'POST',
-    body: formData,
-  });
+  const url = `${API_BASE}/api/convert`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (e) {
+    const msg =
+      e && e.message === 'Failed to fetch'
+        ? 'Impossible de joindre le serveur. Vérifiez que le backend tourne (port 3001) et que CORS autorise cette origine.'
+        : (e && e.message) || 'Erreur réseau';
+    throw new Error(msg);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

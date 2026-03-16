@@ -56,7 +56,7 @@ router.post('/convert', upload.array('files', 20), async (req, res) => {
     send(0);
     const toutesFactures = [];
 
-    const CONCURRENCY = 2;
+    const CONCURRENCY = 1;
     const extracted = await Promise.all(
       files.map(async (file) => {
         const { text } = await extraireTextePdf(file.buffer);

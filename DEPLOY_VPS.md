@@ -176,3 +176,15 @@ Redémarre le backend pour prendre en compte la variable.
 ```bash
 curl -X POST -H "X-Deploy-Secret: ta_cle_secrete_ici_123" http://localhost:3001/api/deploy
 ```
+
+---
+
+## Dépannage : "fetch failed" ou conversion qui échoue
+
+- **Les messages `contentscript.bundle.js`, `crypto.randomUUID`, `Sentry 429`** dans la console viennent d’**extensions navigateur**, pas de ton app. Tu peux les ignorer.
+
+- **"fetch failed" / "Impossible de joindre le serveur"** : le front ne peut pas contacter l’API. Vérifier :
+  1. **Backend allumé** : sur le VPS, `curl http://localhost:3001/api/health` doit répondre `{"ok":true}`.
+  2. **URL d’API au build** : si tu accèdes au site en `http://IP:5173`, le client doit appeler `http://IP:3001`. Soit tu as défini `VITE_API_URL=http://TON_IP:3001` dans `client/.env` avant `npm run build`, soit le code utilise l’IP automatiquement quand tu es sur le port 5173. Rebuilder le client après changement : `cd client && npm run build`.
+  3. **CORS** : dans `server/.env`, `CLIENT_ORIGIN` doit être **exactement** l’origine de la page (ex. `http://135.125.102.27:5173` ou `http://ton-domaine.com`). Pas de slash final.
+  4. **Conversion longue** : 2 factures avec Mistral peuvent prendre 1–2 min. Si la connexion coupe (proxy, timeout), ça donne "fetch failed". Vérifier les logs backend : `tail -f ~/converter-pdf-excel/server/server.log`.
