@@ -22,7 +22,7 @@ Pour chaque facture dans le texte, extrais et retourne UNIQUEMENT un JSON valide
 Règles importantes :
 - dateFacture : utilise de préférence le format YYYY-MM-DD (ex: 2025-12-22) pour la date d'émission de la facture.
 - totalTTC : le montant TOTAL TTC (toutes taxes comprises) : "TOTAL TTC", "Net à payer", "NET A PAYER", "Montant TTC". C'est le montant final à payer.
-- montantPayeAcomptes : UNIQUEMENT si la facture mentionne explicitement un acompte, une situation, "perçu", "déjà réglé", "acompte perçu", etc. Si aucune mention de paiement partiel ou d'acompte → mettre 0. Ne JAMAIS mettre le montant HT ni le TTC dans montantPayeAcomptes.
+-S’il y a plusieurs acomptes (par ex. 300,70 + 200,30), tu dois additionner tous les acomptes et mettre la somme dans montantPayeAcomptes (ici 501), et mettre toutes les dates dans datesPaiementAcomptes. "datesPaiementAcomptes" doit contenir toutes les dates correspondantes.
 - datesPaiementAcomptes : liste une date pour chaque acompte/situation mentionné ; si aucun acompte, laisser [].
 - Identifie les mentions explicites : acompte, réglé, perçu, situation, "déjà perçu", "situation 1", etc. N'interprète pas le "MONTANT H.T." ou "Net à payer" comme un acompte.
 - modePaiement : uniquement "Virement" ou "Autre". Si virement bancaire, RIB → "Virement". Sinon → "Autre".
