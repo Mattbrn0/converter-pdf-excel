@@ -81,8 +81,9 @@ function App() {
           type="button"
           className="btn btn--ghost header__help"
           onClick={() => setShowHelp(true)}
+          aria-label="Ouvrir l’aide"
         >
-          Aide
+          ?
         </button>
       </header>
 
@@ -151,8 +152,17 @@ function App() {
       )}
 
       {showHelp && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Aide">
-          <div className="overlay__content">
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Aide"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="overlay__content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="overlay__header">
               <h2>Aide</h2>
               <button
