@@ -85,8 +85,9 @@ function compacterTexteFacture(texte, maxChars = 8000) {
 function extraireAcomptesEtDatesDepuisTexte(texte) {
   if (!texte || typeof texte !== 'string') return { total: 0, dates: [] };
   const lignes = texte.split(/\r?\n/);
+  // Inclure les orthographes fréquentes: acompte / accompte, déjà/déja, perçu/percu, situation 1, etc.
   const reLigneAcompte =
-    /(acompte|situation|déjà réglé|deja regle|déjà perçu|deja percu|perçu le|percu le|situation\s+\d+)/i;
+    /(acompte|accompte|situation|déjà réglé|deja regle|déjà perçu|deja percu|déja perçu|deja perçu|perçu le|percu le|deja percu le|déja percu le|situation\s+\d+)/i;
   const reMontant = /(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
   const reDate =
     /(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+\d{2,4})/i;
