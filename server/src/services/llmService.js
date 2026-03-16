@@ -91,8 +91,8 @@ function extraireAcomptesEtDatesDepuisTexte(texte) {
   const reMontant = /(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
   const reDate =
     /(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+\d{2,4})/i;
-  let total = 0;
-  const dates = [];
+  const montants = new Set();
+  const datesSet = new Set();
 
   for (const line of lignes) {
     if (!reLigneAcompte.test(line)) continue;
@@ -106,17 +106,20 @@ function extraireAcomptesEtDatesDepuisTexte(texte) {
       s = s.replace(',', '.');
       const n = Number(s);
       if (!Number.isNaN(n) && n > 0) {
-        total += n;
+        montants.add(Number(n.toFixed(2)));
       }
     }
 
     // Extraire la première date trouvée sur la ligne (s'il y en a)
     const dateMatch = line.match(reDate);
     if (dateMatch && dateMatch[1]) {
-      dates.push(dateMatch[1].trim());
+      datesSet.add(dateMatch[1].trim());
     }
   }
-  console.log('=== DEBUG_ACOMPTES ===', { total, dates });
+  const uniques = Array.from(montants);
+  const total = uniques.reduce((acc, n) => acc + n, 0);
+  const dates = Array.from(datesSet);
+  console.log('=== DEBUG_ACOMPTES ===', { montants: uniques, total, dates });
   return { total, dates };
 }
 
