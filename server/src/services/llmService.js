@@ -297,6 +297,9 @@ export async function extraireFacturesAvecLLM(textePdf) {
   if (!textePdf || !textePdf.trim()) {
     throw new Error('Aucun texte à analyser');
   }
+  console.log('=== TEXTE_FACTURE_DEBUG_DEBUT ===');
+console.log(textePdf);
+console.log('=== TEXTE_FACTURE_DEBUG_FIN ===');
 
   const config = getProviderConfig();
   // Limiter fortement la taille du texte envoyé au LLM pour réduire le temps de traitement
