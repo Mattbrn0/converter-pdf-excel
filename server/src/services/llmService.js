@@ -120,7 +120,7 @@ function extraireAcomptesEtDatesDepuisTexte(texte) {
   const total = uniques.reduce((acc, n) => acc + n, 0);
   const dates = Array.from(datesSet);
   console.log('=== DEBUG_ACOMPTES ===', { montants: uniques, total, dates });
-  return { total, dates };
+  return { montants: uniques, total, dates };
 }
 
 /**
@@ -416,8 +416,17 @@ console.log('=== TEXTE_FACTURE_DEBUG_FIN ===');
     parsed.factures = parsed.factures.map((f) => {
       const totalTTC = Number(f.totalTTC ?? f.totalHT) || 0;
 
-      // On ne fait plus confiance au LLM pour les acomptes : on écrase avec ce qu'on trouve dans le texte
-      let acompte = acomptesTexte.total > 0 ? acomptesTexte.total : Number(f.montantPayeAcomptes) || 0;
+      // Filtrer les montants d'acomptes en fonction du total TTC pour cette facture
+      const montantsBruts = Array.isArray(acomptesTexte.montants) ? acomptesTexte.montants : [];
+      const montantsFiltrés =
+        totalTTC > 0
+          ? montantsBruts.filter((m) => m > 0 && m <= totalTTC)
+          : montantsBruts;
+
+      const sommeFiltrée = montantsFiltrés.reduce((acc, n) => acc + n, 0);
+
+      // On ne fait plus confiance au LLM pour les acomptes : on écrase avec ce qu'on trouve dans le texte filtré
+      let acompte = sommeFiltrée > 0 ? sommeFiltrée : Number(f.montantPayeAcomptes) || 0;
       let out = {
         ...f,
         totalTTC,
@@ -430,6 +439,7 @@ console.log('=== TEXTE_FACTURE_DEBUG_FIN ===');
         fournisseur: out.fournisseur,
         totalTTC,
         acomptesTexte,
+        montantsFiltrés,
         montantFinal: out.montantPayeAcomptes,
         datesFinales: out.datesPaiementAcomptes,
       });
