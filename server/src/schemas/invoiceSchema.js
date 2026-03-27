@@ -21,6 +21,8 @@ const montantSchema = z
  */
 export const factureExtraitSchema = z.object({
   dateFacture: z.string(),
+  /** Numéro de facture (référence) — obligatoire pour distinguer plusieurs factures du même fournisseur. */
+  numeroFacture: z.string().optional(),
   fournisseur: z.string(),
   totalTTC: montantSchema,
   modePaiement: z.string().optional(),

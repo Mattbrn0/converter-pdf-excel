@@ -9,6 +9,7 @@ Pour chaque facture dans le texte, extrais et retourne UNIQUEMENT un JSON valide
   "factures": [
     {
       "dateFacture": "YYYY-MM-DD de préférence (ex: 2025-12-22), ou date lisible",
+      "numeroFacture": "Numéro / référence de facture (N°, Facture n°, référence) si présent, sinon chaîne vide",
       "fournisseur": "Nom du fournisseur ou de l'émetteur",
       "totalTTC": nombre = TOTAL TTC (Net à payer, montant toutes taxes comprises),
       "modePaiement": "Virement" ou "Autre" uniquement (Virement = virement bancaire / RIB ; tout le reste = Autre),
@@ -20,6 +21,8 @@ Pour chaque facture dans le texte, extrais et retourne UNIQUEMENT un JSON valide
 }
 
 Règles importantes :
+- numeroFacture : extrais le numéro ou la référence de facture (ex. "FAC-2025-001", "N° 12345") quand il est visible. Indispensable pour distinguer deux factures du même fournisseur.
+- Plusieurs factures, même fournisseur : si le texte contient plusieurs factures distinctes (numéros de facture différents), retourne UN élément dans "factures" par facture. Ne fusionne JAMAIS deux factures différentes sous prétexte que le fournisseur ou le client a le même nom : si les numéros de facture diffèrent (ou les totaux TTC / dates d'émission sont clairement ceux de documents séparés), ce sont des lignes séparées.
 - dateFacture : utilise de préférence le format YYYY-MM-DD (ex: 2025-12-22) pour la date d'émission de la facture.
 - totalTTC : le montant TOTAL TTC (toutes taxes comprises) : "TOTAL TTC", "Net à payer", "NET A PAYER", "Montant TTC". C'est le montant final à payer.
 -S’il y a plusieurs acomptes (par ex. 300,70 + 200,30), tu dois additionner tous les acomptes et mettre la somme dans montantPayeAcomptes (ici 501), et mettre toutes les dates dans datesPaiementAcomptes. "datesPaiementAcomptes" doit contenir toutes les dates correspondantes.
@@ -27,11 +30,11 @@ Règles importantes :
 - Identifie les mentions explicites : acompte, réglé, perçu, situation, "déjà perçu", "situation 1", etc. N'interprète pas le "MONTANT H.T." ou "Net à payer" comme un acompte.
 - modePaiement : uniquement "Virement" ou "Autre". Si virement bancaire, RIB → "Virement". Sinon → "Autre".
 - Si une information est introuvable, utilise une valeur par défaut raisonnable.
-- Si plusieurs factures sont dans le même document, retourne un élément par facture dans "factures".
+- Si plusieurs factures réelles sont dans le même document (numéros de facture distincts), retourne un élément par facture dans "factures".
 - Réponds UNIQUEMENT par le JSON, sans commentaire.
 - CRITIQUE : ne mets AUCUN texte avant ou après le JSON. Pas de "Voici les factures", pas d'introduction. Ta réponse doit commencer exactement par { et finir par }.
-- Même si la facture contient un long paragraphe juridique (cession, affacturage, subrogation), plusieurs bons de livraison (BL) ou tableaux détaillés, extrais les infos principales (fournisseur, total TTC, date, échéance, mode de paiement) et retourne UNIQUEMENT le JSON. Une seule facture = un seul élément dans "factures".
-- Un document = une facture : utilise le TOTAL TTC du document (Net à payer), pas les sous-totaux partiels (ex. d'un BL). Retourne un seul élément dans "factures" par document.`;
+- Même si la facture contient un long paragraphe juridique (cession, affacturage, subrogation), plusieurs bons de livraison (BL) ou tableaux détaillés, extrais les infos principales (numéro de facture, fournisseur, total TTC, date, échéance, mode de paiement) et retourne UNIQUEMENT le JSON.
+- Une seule facture comptable (un seul numéro de facture / un seul "Net à payer" global) : un seul élément dans "factures", avec le TOTAL TTC du document, pas les sous-totaux partiels d'un BL isolé. En revanche, si le PDF mélange clairement plusieurs factures avec des numéros différents, un élément par numéro de facture.`;
 
 /**
  * Compacte le texte d'une facture pour ne garder que les parties utiles :
@@ -146,9 +149,9 @@ function tryRepairJson(str) {
 const FALLBACK_PROMPT = `Tu dois répondre UNIQUEMENT par un objet JSON, sans aucun autre texte. Pas d'introduction, pas d'explication. Commence par { et finis par }.
 
 Format exact attendu (un seul objet avec une clé "factures" contenant un tableau d'objets) :
-{"factures":[{"dateFacture":"YYYY-MM-DD","fournisseur":"Nom","totalTTC":0,"modePaiement":"Virement ou Autre","etat":"Payée ou À payer","montantPayeAcomptes":0,"datesPaiementAcomptes":[]}]}
+{"factures":[{"dateFacture":"YYYY-MM-DD","numeroFacture":"","fournisseur":"Nom","totalTTC":0,"modePaiement":"Virement ou Autre","etat":"Payée ou À payer","montantPayeAcomptes":0,"datesPaiementAcomptes":[]}]}
 
-Extrais les données de la facture dans le texte ci-dessous et remplis le JSON. Une facture = un élément dans le tableau.`;
+Extrais les données de la facture dans le texte ci-dessous et remplis le JSON. Si plusieurs numéros de facture distincts, un élément par facture.`;
 
 function getProviderConfig() {
   const provider = (process.env.LLM_PROVIDER || 'openai').toLowerCase();

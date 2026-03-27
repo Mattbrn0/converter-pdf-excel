@@ -3,6 +3,7 @@ import { calculerDateEcheance, formaterDate, normaliserModePaiement } from '../s
 
 const COLUMNS = [
   { header: 'Date facture', key: 'dateFacture', width: 14 },
+  { header: 'N° facture', key: 'numeroFacture', width: 16 },
   { header: 'Fournisseur', key: 'fournisseur', width: 30 },
   { header: 'Total TTC', key: 'totalTTC', width: 12 },
   { header: 'Date échéance', key: 'dateEcheance', width: 14 },
@@ -39,6 +40,7 @@ export async function genererExcel(factures) {
 
     sheet.addRow({
       dateFacture: formaterDate(f.dateFacture),
+      numeroFacture: f.numeroFacture ?? '',
       fournisseur: f.fournisseur,
       totalTTC: f.totalTTC,
       dateEcheance,

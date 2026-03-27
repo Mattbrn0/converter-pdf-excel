@@ -72,7 +72,7 @@ router.post('/convert', upload.array('files', 20), async (req, res) => {
         chunk.map(({ text }) => extraireFacturesAvecLLM(text))
       );
       results.forEach((factures) => {
-        if (factures.length > 0) toutesFactures.push(factures[0]);
+        factures.forEach((f) => toutesFactures.push(f));
       });
       const done = Math.min(i + chunk.length, withText.length);
       send(20 + (done / Math.max(withText.length, 1)) * 55);

@@ -125,6 +125,7 @@ function App() {
               </li>
             ))}
           </ul>
+
           <button
             type="button"
             className="btn btn--primary"
@@ -135,7 +136,14 @@ function App() {
           </button>
 
           {loading && (
-            <div className="progress" role="status" aria-live="polite" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <div
+              className="progress"
+              role="status"
+              aria-live="polite"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
               <div className="progress__track">
                 <div className="progress__bar" style={{ width: `${progress}%` }} />
               </div>
