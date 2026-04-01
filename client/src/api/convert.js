@@ -69,7 +69,9 @@ export async function convertPdfToExcel(files, onProgress) {
           const obj = JSON.parse(data);
           token = obj.token;
           filename = obj.filename;
-        } catch (_) {}
+        } catch {
+          // Ignore JSON parse errors; handled by missing token/filename below.
+        }
       }
       if (event === 'error') {
         try {
