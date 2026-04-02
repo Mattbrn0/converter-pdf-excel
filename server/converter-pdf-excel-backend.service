@@ -1,0 +1,17 @@
+[Unit]
+Description=Converter PDF -> Excel (backend)
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/var/www/converter-pdf-excel/server
+Environment=PORT=3001
+EnvironmentFile=-/var/www/converter-pdf-excel/server/.env
+ExecStart=/usr/bin/node /var/www/converter-pdf-excel/server/src/index.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+
